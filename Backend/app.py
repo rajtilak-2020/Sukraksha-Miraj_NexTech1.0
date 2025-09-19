@@ -255,6 +255,51 @@ if not os.path.exists(os.path.join(DECOY_DIR, 'credentials_backup.zip')):
 # -----------------------
 # Routes
 # -----------------------
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint - provides API information and status"""
+    return jsonify({
+        'status': 'ok',
+        'service': 'Suraksha Mirage Backend',
+        'version': '1.0',
+        'endpoints': {
+            'api_info': '/',
+            'tables': '/api/tables',
+            'alerts': '/api/alerts',
+            'login': '/api/login',
+            'query': '/api/query',
+            'block_ip': '/api/actions/block',
+            'generate_decoys': '/api/decoy/generate',
+            'export_report': '/api/export_report',
+            'download': '/download/<filename>'
+        },
+        'timestamp': datetime.datetime.utcnow().isoformat()
+    })
+
+@app.route('/api/status', methods=['GET'])
+def api_status():
+    """Health check endpoint"""
+    try:
+        # Test database connection
+        log_count = Log.query.count()
+        blocked_count = Blocklist.query.count()
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'stats': {
+                'total_logs': log_count,
+                'blocked_ips': blocked_count
+            },
+            'timestamp': datetime.datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'database': 'error',
+            'error': str(e),
+            'timestamp': datetime.datetime.utcnow().isoformat()
+        }), 500
+
 @app.route('/api/tables', methods=['GET'])
 def api_tables():
     base = request.url_root.rstrip('/')
@@ -454,31 +499,49 @@ def api_export_report():
                 w.writerow([l.id, l.ip, l.timestamp.isoformat(), l.path, int(bool(l.anomaly)), l.decoy_file or ''])
     except Exception as e:
         logging.exception("Failed writing csv export: %s", e)
-    # Create a tiny PPTX if python-pptx available
-    pptx_path = None
-    try:
-        from pptx import Presentation
-        prs = Presentation()
-        s = prs.slides.add_slide(prs.slide_layouts[1])
-        s.shapes.title.text = "Suraksha Mirage - Short Report"
-        tf = s.shapes.placeholders[1].text_frame
-        tf.text = f"Total logs: {len(logs)}"
-        pptx_path = os.path.join(EXPORTS_DIR, 'summary.pptx')
-        prs.save(pptx_path)
-    except Exception as e:
-        logging.info("python-pptx not available or failed, skipping PPTX: %s", e)
-    # zip and return
-    buf = io.BytesIO()
-    try:
-        with zipfile.ZipFile(buf, 'w') as z:
-            z.write(csv_path, arcname=os.path.basename(csv_path))
-            if pptx_path and os.path.exists(pptx_path):
-                z.write(pptx_path, arcname=os.path.basename(pptx_path))
-        buf.seek(0)
-        return send_file(buf, mimetype='application/zip', as_attachment=True, download_name='suraksha_report.zip')
-    except Exception as e:
-        logging.exception("Failed to build export zip: %s", e)
-        return jsonify({'status':'error','message':'export failed'}), 500
+
+# -----------------------
+# Error Handlers
+# -----------------------
+@app.errorhandler(404)
+def not_found_error(error):
+    """Handle 404 errors with JSON response"""
+    return jsonify({
+        'status': 'error',
+        'error': 'Not Found',
+        'message': 'The requested resource was not found on this server.',
+        'available_endpoints': [
+            '/',
+            '/api/status',
+            '/api/tables',
+            '/api/alerts',
+            '/api/login',
+            '/api/query',
+            '/api/actions/block',
+            '/api/decoy/generate',
+            '/api/export_report',
+            '/download/<filename>'
+        ]
+    }), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors with JSON response"""
+    db.session.rollback()
+    return jsonify({
+        'status': 'error',
+        'error': 'Internal Server Error',
+        'message': 'An internal server error occurred.'
+    }), 500
+
+@app.errorhandler(403)
+def forbidden_error(error):
+    """Handle 403 errors with JSON response"""
+    return jsonify({
+        'status': 'error',
+        'error': 'Forbidden',
+        'message': 'Access denied. Your IP may be blocked.'
+    }), 403
 
 # -----------------------
 # Run
