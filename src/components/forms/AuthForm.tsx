@@ -1,17 +1,27 @@
+import { Eye, EyeOff, Shield } from 'lucide-react';
 import React, { useState } from 'react';
-import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { Shield, Eye, EyeOff } from 'lucide-react';
+import { Input } from '../ui/Input';
+
+import { VictimAttempt } from '../../types/database';
+
+interface AuthFormData {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  fullName: string;
+}
 
 interface AuthFormProps {
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Omit<VictimAttempt, 'id' | 'created_at'>) => void;
   loading?: boolean;
 }
 
 export const AuthForm: React.FC<AuthFormProps> = ({ onSubmit, loading = false }) => {
   const [isSignup, setIsSignup] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AuthFormData>({
     username: '',
     email: '',
     password: '',
@@ -49,9 +59,24 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onSubmit, loading = false })
     setErrors(newErrors);
     
     if (Object.keys(newErrors).length === 0) {
+      // Prepare data according to VictimAttempt type
       onSubmit({
-        ...formData,
-        attempt_type: isSignup ? 'signup' : 'login'
+        username: formData.username,
+        email: isSignup ? formData.email : null,
+        password: formData.password,
+        full_name: isSignup ? formData.fullName : null,
+        attempt_type: isSignup ? 'signup' : 'login',
+        ip_address: null, // This will be captured server-side
+        user_agent: window.navigator.userAgent
+      });
+      
+      // Reset form after submission
+      setFormData({
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        fullName: ''
       });
     }
   };

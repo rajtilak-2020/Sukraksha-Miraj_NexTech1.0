@@ -7,7 +7,9 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Real-time subscription for dashboard
-export const subscribeToAttempts = (callback: (payload: any) => void) => {
+export const subscribeToAttempts = (
+  callback: (payload: { new: VictimAttempt; eventType: 'INSERT' }) => void
+) => {
   return supabase
     .channel('attempts')
     .on('postgres_changes', 
@@ -18,11 +20,30 @@ export const subscribeToAttempts = (callback: (payload: any) => void) => {
 
 // Database operations
 export const captureAttempt = async (data: Omit<VictimAttempt, 'id' | 'created_at'>) => {
-  const { error } = await supabase
-    .from('victims')
-    .insert([data]);
-  
-  if (error) {
+  try {
+    const { error } = await supabase
+      .from('victims')
+      .insert([{
+        ...data,
+        ip_address: 'CAPTURED_ON_SERVER', // IP will be captured by RLS policy
+        user_agent: navigator.userAgent || 'Unknown'
+      }]);
+    
+    if (error) {
+      console.error('Error capturing attempt:', error);
+      throw error;
+    }
+
+    // Trigger real-time update
+    const channel = supabase.channel('attempts');
+    channel.send({
+      type: 'broadcast',
+      event: 'new_attempt',
+      payload: data
+    });
+
+    return true;
+  } catch (error) {
     console.error('Error capturing attempt:', error);
     throw error;
   }
