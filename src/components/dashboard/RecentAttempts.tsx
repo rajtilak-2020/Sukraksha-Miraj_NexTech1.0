@@ -1,7 +1,7 @@
+import { Clock, Mail, Shield, User } from 'lucide-react';
 import React from 'react';
-import { Card } from '../ui/Card';
 import { VictimAttempt } from '../../types/database';
-import { Clock, User, Mail, Shield } from 'lucide-react';
+import { Card } from '../ui/Card';
 
 interface RecentAttemptsProps {
   attempts: VictimAttempt[];
