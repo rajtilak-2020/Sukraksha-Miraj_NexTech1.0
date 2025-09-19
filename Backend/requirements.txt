@@ -1,0 +1,8 @@
+Flask
+Flask-SQLAlchemy
+pandas
+scikit-learn
+joblib
+Faker
+python-dotenv
+python-pptx
