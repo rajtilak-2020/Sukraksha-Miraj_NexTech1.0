@@ -1,5 +1,5 @@
+import { AlertTriangle, Clock, Shield } from 'lucide-react';
 import React from 'react';
-import { Shield, AlertTriangle, Clock } from 'lucide-react';
 
 export const Maintenance: React.FC = () => {
   return (
