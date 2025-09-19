@@ -8,7 +8,7 @@ export const Maintenance: React.FC = () => {
         <div className="flex justify-center mb-6">
           <div className="relative">
             <Shield className="w-16 h-16 text-blue-600" />
-            <AlertTriangle className="w-8 h-8 text-orange-500 absolute -top-1 -right-1" />
+            <AlertTriangle className="w-8 h-8 text-red-500 absolute -top-1 -right-1" />
           </div>
         </div>
         

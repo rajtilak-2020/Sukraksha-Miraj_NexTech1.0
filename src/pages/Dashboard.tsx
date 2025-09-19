@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { DashboardHeader } from '../components/dashboard/DashboardHeader';
-import { StatsCards } from '../components/dashboard/StatsCards';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AttemptsOverTime } from '../components/charts/AttemptsOverTime';
 import { AttemptTypeDistribution } from '../components/charts/AttemptTypeDistribution';
 import { TopUsernames } from '../components/charts/TopUsernames';
+import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { RecentAttempts } from '../components/dashboard/RecentAttempts';
-import { VictimAttempt, DashboardStats } from '../types/database';
-import { getAttempts, getStats, subscribeToAttempts } from '../lib/supabase';
+import { StatsCards } from '../components/dashboard/StatsCards';
 import { logout } from '../lib/auth';
+import { getAttempts, getStats, subscribeToAttempts } from '../lib/supabase';
+import { DashboardStats, VictimAttempt } from '../types/database';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -131,7 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       <DashboardHeader onLogout={handleLogout} onExport={handleExport} />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <StatsCards stats={stats} />
+        <StatsCards stats={stats} loading={loading} error={error} />
         
         <div className="grid lg:grid-cols-2 gap-8 mt-8">
           <AttemptsOverTime attempts={attempts} />
